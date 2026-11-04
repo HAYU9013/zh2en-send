@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+  body { width: 280px; font: 14px system-ui, sans-serif; margin: 12px; }
+  label, button, select { display: block; width: 100%; margin: 6px 0; box-sizing: border-box; }
+  button, select { padding: 6px; }
+  #count { color: #666; font-size: 12px; }
+</style>
+<label><input type="checkbox" id="enabled"> 啟用翻譯 / Enable</label>
+<div id="count"></div>
+<label>常用 AI 聊天室 / Preferred AI
+  <select id="ai">
+    <option value="chatgpt">ChatGPT</option>
+    <option value="claude">Claude</option>
+    <option value="gemini">Gemini</option>
+    <option value="perplexity">Perplexity</option>
+  </select>
+</label>
+<button id="review">用 AI 檢討我的英文 / Review with AI</button>
+<button id="copy">複製到剪貼簿 / Copy to clipboard</button>
+<button id="download">下載紀錄檔 (.md) / Download</button>
+<button id="clear">清除紀錄 / Clear</button>
+<div id="msg" style="font-size:12px;color:#2e7d32"></div>
+<script src="popup.js"></script>

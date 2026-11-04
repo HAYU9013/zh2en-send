@@ -20,7 +20,7 @@ Chrome Manifest V3 擴充功能，**只在 Krillion（`krillion.io` / `krillion.
 | `manifest.json` | MV3；權限 `storage`、`clipboardWrite`；host `translate.googleapis.com`；popup 為 `popup.html` |
 | `content.js` | 注入 Krillion 頁面。capture 階段攔 Enter → 送訊息給 background 翻譯 → 寫回輸入框 → 重送 Enter |
 | `background.js` | service worker。`translate()`（Google gtx，`sl=auto&tl=en`）、`logPair()` 記錄、徽章 ON/OFF |
-| `popup.html` / `popup.js` | 工具列面板：開關、選 AI、檢討（複製 + 跳轉）、複製、下載 `.md`、清除；`buildPrompt()` 內含人設 |
+| `popup.html` / `popup.js` | 工具列面板：開關、選 AI、檢討（複製 + 跳轉）、複製、下載 `.md`、清除；`buildPrompt()` 產生檢討提示 |
 | `README.md` | 給使用者的說明 |
 
 沒有 build、沒有 npm、沒有測試框架；所有檔案直接被 Chrome 載入。

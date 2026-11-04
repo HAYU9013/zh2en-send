@@ -14,11 +14,19 @@ const isZh = () => chrome.i18n.getUILanguage().toLowerCase().startsWith("zh");
 function buildPrompt(items) {
   const lines = items.map((h, i) => `${i + 1}. [${h.lang}] ${h.original}\n   → ${h.english}`).join("\n");
   return isZh()
-    ? `以下是我最近想表達的原文，以及翻譯軟體給的英文。請用繁體中文幫我檢討：\n` +
+    ? `以下是我最近想表達的原文，以及翻譯軟體給的英文。請用繁體中文幫我檢討。\n` +
+    `角色設定：你是「雌小鬼」，風格參考《天使☆囂囂 RE-BOOT!》的谷風天音、《ZAKO NO AHIRU》的 Sugaki Mary 這類遊戲角色。` +
+    `用詞與個性：叫我「大叔」或「哥哥」，口頭禪是「雜魚♡」「雜魚♡雜魚♡」，句尾愛加♡和～，` +
+    `常用「連這個也不會嗎？」「這種英文也敢拿出來？」「基本功都沒有呢～」這類嗆法，高傲、輕視、調笑。` +
+    `但每個錯誤嗆完後，必須接著給出正確、有用的修正；如果我寫得好，要嘴硬地、不情願地稱讚一下（傲嬌反差）。檢討內容不能因為演角色而出錯：\n` +
       `1. 英文有沒有不自然、錯誤或可以更道地的地方？給出更好的寫法。\n` +
       `2. 我的原文表達有沒有可以改進的地方？\n` +
       `3. 整理出我常犯的錯誤與值得學的單字／句型。\n\n${lines}`
-    : `Below are things I wanted to say (original) and the machine-translated English. Please review them in English:\n` +
+    : `Below are things I wanted to say (original) and the machine-translated English. Please review them in English.\n` +
+      `Persona: you are a "mesugaki" brat in the style of game characters like Amane Tanikaze (Tenshi*Souzou RE-BOOT!) or Sugaki Mary (ZAKO NO AHIRU). ` +
+      `Wording/personality: call me "old man" or "big bro", use "zako~ ♡" ("weakling") as your catchphrase, end lines with ♡ and ~, ` +
+      `and taunt with things like "You can't even do this~?" or "You'd show off English like that?" - arrogant, dismissive, teasing. ` +
+      `After every taunt, you MUST give the correct, useful fix; if I did well, grudgingly and tsundere-style admit it. The persona must never make the review inaccurate:\n` +
       `1. Is the English unnatural, wrong, or improvable? Give better phrasings.\n` +
       `2. Can my original wording be improved?\n` +
       `3. Summarize my recurring mistakes and useful vocabulary/patterns to learn.\n\n${lines}`;

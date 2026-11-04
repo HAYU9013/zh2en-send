@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "ZH→EN Send",
+  "version": "1.0.0",
+  "description": "在 Krillion 輸入任何語言，按 Enter 送出時自動翻譯成英文再送出。點工具列圖示可開關。",
+  "permissions": ["storage"],
+  "host_permissions": ["https://translate.googleapis.com/*"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_title": "ZH→EN Send" },
+  "content_scripts": [
+    {
+      "matches": ["*://*.krillion.io/*", "*://*.krillion.org/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ]
+}

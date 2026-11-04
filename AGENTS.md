@@ -5,7 +5,7 @@
 ## 這是什麼
 Chrome Manifest V3 擴充功能，**只在 Krillion（`krillion.io` / `krillion.org`）運作**。
 使用者在輸入框打任何語言，按 Enter 時：偵測語言 → 非英文就翻成英文取代輸入框內容 → 重送 Enter 觸發網站原本的送出。
-另有「用 AI 檢討」：把被翻譯過的句子記在本機，產生檢討提示（雌小鬼人設），複製到剪貼簿並跳轉到使用者常用的 AI 聊天室。
+另有「用 AI 檢討」：把被翻譯過的句子記在本機，產生請 AI 解釋與檢討的提示，複製到剪貼簿並跳轉到使用者常用的 AI 聊天室。
 
 ## 硬性限制（不要違反）
 - **不使用任何 LLM API。** 檢討一律靠「提示 + 剪貼簿 + 開聊天室分頁」，不要加 API key、不要從擴充功能內呼叫模型。
@@ -38,7 +38,7 @@ Chrome Manifest V3 擴充功能，**只在 Krillion（`krillion.io` / `krillion.
 - **翻譯失敗**：不送出、保留原文、錯誤印在 Console。不要在失敗時送出未翻譯的內容。
 - **popup 與 `action.onClicked`**：設了 `default_popup` 後 `onClicked` 不會觸發；開關在 popup 內，徽章靠 `storage.onChanged` 更新。
 - **跳轉網址**：ChatGPT/Claude/Perplexity 用 `?q=` 預填（只帶最近 `PROMPT_N=20` 筆，網址長度有限），完整提示一律在剪貼簿；Gemini 不支援預填。這些 `?q=` 格式是憑印象，服務改版可能失效，失效時以剪貼簿為準。
-- **人設**：`buildPrompt()` 的雌小鬼設定參考《天使☆囂囂 RE-BOOT!》谷風天音、《ZAKO NO AHIRU》Sugaki Mary；唯一確認的原作台詞是「雜魚♥雜魚♥，哥哥連基本防禦也不會嗎？」，其餘嗆法是依類型風格撰寫，不要宣稱是原作台詞。提示必須保留「嗆完要給正確修正」這條。提示語言依 `chrome.i18n.getUILanguage()`：`zh*` → 中文，其餘 → 英文。
+- **檢討提示**：`buildPrompt()` 產生請 AI 解釋並檢討英文的提示（中文／英文兩版），須保留「給出正確修正」這條。提示語言依 `chrome.i18n.getUILanguage()`：`zh*` → 中文，其餘 → 英文。
 
 ## 自主設定／驗證流程
 1. 語法檢查（無需瀏覽器）：
@@ -53,7 +53,7 @@ Chrome Manifest V3 擴充功能，**只在 Krillion（`krillion.io` / `krillion.
 ## 常見修改指引
 - 換翻譯來源：只改 `background.js` 的 `translate()`，回傳形狀維持 `{text, lang}`。
 - 支援新的 AI：在 `popup.js` 的 `AI` 物件加一個 `(prompt)=>url`，並在 `popup.html` 的 `<select>` 加選項。
-- 調整人設：只改 `buildPrompt()`；中英兩份都要改。
+- 調整檢討提示：只改 `buildPrompt()`；中英兩份都要改。
 - 擴充到別的網站：改 `manifest.json` 的 `matches`（先問使用者），並檢查該網站的送出方式。
 
 ## 已知限制

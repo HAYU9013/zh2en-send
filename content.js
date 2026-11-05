@@ -1,6 +1,8 @@
 (() => {
   let enabled = true;
   let busy = false;
+  const log = (...a) => console.log("[ZH→EN Send]", ...a);
+  log("content script loaded", location.href, "frame:", window === top ? "top" : "iframe");
 
   chrome.storage.local.get("enabled", (r) => { enabled = r.enabled !== false; });
   chrome.storage.onChanged.addListener((c) => {
@@ -12,6 +14,16 @@
     if (el.tagName === "TEXTAREA") return el;
     if (el.tagName === "INPUT" && /^(text|search|)$/i.test(el.type)) return el;
     return el.closest?.('[contenteditable=""],[contenteditable="true"],[contenteditable="plaintext-only"]') || null;
+  }
+
+  // 目前畫面上的題目（.ds-card 卡片文字），隨翻譯紀錄一起存，供「用 AI 檢討」使用
+  function getQuestion() {
+    const cards = [...document.querySelectorAll(".ds-card")];
+    const card = cards.find((el) => (el.innerText || "").trim());
+    const q = (card?.innerText || "").trim().slice(0, 500);
+    log("getQuestion: .ds-card 共", cards.length, "張；取第一張有文字的 →", card ? "found" : "NOT FOUND", JSON.stringify(q));
+    if (cards.length > 1) cards.forEach((el, i) => log(`  .ds-card[${i}] class="${el.className}"`, JSON.stringify((el.innerText || "").trim().slice(0, 80))));
+    return q;
   }
 
   const getText = (el) => ("value" in el ? el.value : el.innerText);
@@ -32,10 +44,10 @@
   const alive = () => !!(globalThis.chrome && chrome.runtime && chrome.runtime.id);
   const STALE_MSG = "擴充功能已更新，請重新整理此頁面 (F5)";
 
-  function translate(text) {
+  function translate(text, question) {
     return new Promise((resolve, reject) => {
       if (!alive()) return reject(new Error(STALE_MSG));
-      chrome.runtime.sendMessage({ type: "translate", text }, (r) => {
+      chrome.runtime.sendMessage({ type: "translate", text, question }, (r) => {
         if (chrome.runtime.lastError) return reject(new Error(chrome.runtime.lastError.message));
         r?.ok ? resolve(r.text) : reject(new Error(r?.error || "translate failed"));
       });
@@ -46,9 +58,10 @@
     if (!enabled || busy) return;
     if (e.key !== "Enter" || !e.shiftKey || e.ctrlKey || e.altKey || e.metaKey || e.isComposing || e.keyCode === 229) return; // 選字中的 Enter 不處理
     const el = getEditable(e.target);
-    if (!el) return;
+    if (!el) return log("Shift+Enter 但目標不是輸入框，略過：", e.target);
     const text = getText(el).trim();
-    if (!text) return;
+    if (!text) return log("Shift+Enter 但輸入框是空的，略過");
+    log("Shift+Enter 攔截，輸入框內容：", JSON.stringify(text));
 
     e.preventDefault();
     e.stopImmediatePropagation();
@@ -56,8 +69,13 @@
     const prevOpacity = el.style.opacity;
     el.style.opacity = "0.5";
     try {
-      const en = await translate(text);
-      setText(el, en); // 只替換文字，不送出；使用者確認後按 Enter 自行送出
+      const question = getQuestion();
+      const t0 = performance.now();
+      log("送出翻譯請求…");
+      const en = await translate(text, question);
+      log(`收到譯文 (${Math.round(performance.now() - t0)} ms)：`, JSON.stringify(en), en === text ? "(與原文相同，未改變)" : "");
+      setText(el, en);
+      log("已寫回輸入框，目前內容：", JSON.stringify(getText(el))); // 只替換文字，不送出；使用者確認後按 Enter 自行送出
     } catch (err) {
       console.error("[ZH→EN Send] 翻譯失敗，保留原文未送出：", err);
     } finally {
@@ -96,6 +114,7 @@
     const under = document.elementsFromPoint(px, py).map((el) => el.closest?.(".ds-card")).find(Boolean);
     const card = under || [...document.querySelectorAll(".ds-card")].find((el) => (el.innerText || "").trim());
     const ct = (card?.innerText || "").trim();
+    log("textUnderPointer: 滑鼠下的 .ds-card →", under ? "有" : "無（改用第一張）", "；卡片文字：", JSON.stringify(ct));
     if (ct) return ct.slice(0, 1000);
     for (const el of document.elementsFromPoint(px, py)) {
       if (el === document.documentElement || el === document.body || el === box || getEditable(el)) continue;
@@ -109,12 +128,15 @@
     if (!enabled || !e.altKey || e.code !== "KeyT") return;
     e.preventDefault();
     let text = String(getSelection()).trim();
+    log("Alt+T；選取文字：", JSON.stringify(text), "滑鼠位置：", px, py);
     if (!text) text = textUnderPointer(); // 題目不能選取時，直接抓滑鼠下方元素的文字
     if (!text) return showBox("沒有可翻譯的文字（先選取，或把滑鼠移到題目上）", px, py);
     text = text.slice(0, 1000);
+    log("Alt+T 要翻譯的文字：", JSON.stringify(text));
     if (!alive()) return showBox(STALE_MSG, px, py);
     showBox("翻譯中…", px, py);
     chrome.runtime.sendMessage({ type: "translateTo", text, tl: "zh-TW" }, (r) => {
+      log("Alt+T 回應：", r, chrome.runtime.lastError?.message || "");
       if (chrome.runtime.lastError || !r?.ok) return showBox("翻譯失敗：" + (chrome.runtime.lastError?.message || r?.error), px, py);
       showBox(r.text, px, py);
     });

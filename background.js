@@ -14,9 +14,10 @@ async function translate(text) {
 }
 
 const HISTORY_MAX = 200;
-async function logPair(original, english, lang) {
+async function logPair(original, english, lang, question = "") {
   const { history = [] } = await chrome.storage.local.get("history");
-  history.push({ t: Date.now(), lang, original, english });
+  history.push({ t: Date.now(), lang, original, english, question });
+  console.log("[ZH→EN Send/bg] 已記錄到 history（共", Math.min(history.length, HISTORY_MAX), "筆），題目長度", question.length);
   await chrome.storage.local.set({ history: history.slice(-HISTORY_MAX) });
 }
 
@@ -39,12 +40,14 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true;
   }
   if (msg?.type !== "translate") return;
+  console.log("[ZH→EN Send/bg] 收到翻譯請求：", JSON.stringify(msg.text), "題目：", JSON.stringify(msg.question || ""));
   translate(msg.text)
     .then(async (r) => {
-      if (r.lang !== "en") await logPair(msg.text, r.text, r.lang); // 只記錄「有被翻譯」的句子
+      console.log("[ZH→EN Send/bg] gtx 結果：lang =", r.lang, "譯文 =", JSON.stringify(r.text));
+      if (r.lang !== "en") await logPair(msg.text, r.text, r.lang, msg.question || ""); // 只記錄「有被翻譯」的句子
       sendResponse({ ok: true, text: r.text });
     })
-    .catch((e) => sendResponse({ ok: false, error: String(e) }));
+    .catch((e) => { console.error("[ZH→EN Send/bg] 翻譯失敗：", e); sendResponse({ ok: false, error: String(e) }); });
   return true; // async
 });
 

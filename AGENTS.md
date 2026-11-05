@@ -11,7 +11,8 @@ Chrome Manifest V3 擴充功能，**只在 Krillion（`krillion.io` / `krillion.
 - **不使用任何 LLM API。** 檢討一律靠「提示 + 剪貼簿 + 開聊天室分頁」，不要加 API key、不要從擴充功能內呼叫模型。
 - **只作用在 Krillion。** `manifest.json` 的 `content_scripts.matches` 不要改成 `<all_urls>`。要支援其他網站請先問使用者。
 - 不替使用者自動作答、不改動遊戲頁面 DOM（避免被視為作弊；站方目前沒有明文禁止外掛，但也沒有服務條款）。
-  例外（使用者 2026-11-05 明確同意）：只有使用者按 Alt+T 時，才讀取選取文字或滑鼠所在元素的文字，翻成繁中顯示在浮動框；不自動讀題、不作答、不改頁面。
+  例外（使用者 2026-11-05 明確同意）：只有使用者按 Alt+T 時，才讀取選取文字或滑鼠所在元素的文字，翻成繁中顯示在浮動框；不改頁面、不作答。
+  例外 2（使用者 2026-11-05 同意）：按 Shift+Enter 翻譯答案時，順便讀取畫面上 `.ds-card` 的題目文字，只存本機 history，供「用 AI 檢討」使用；不上傳、不用來自動作答。
 - 紀錄只存本機 `chrome.storage.local`，不上傳。
 - git：**只做本地 commit，不 push、不設遠端。** commit 訊息結尾加 `Co-Authored-By: Claude <noreply@anthropic.com>`（依當次系統指定的署名行）。使用者說 commit 才 commit。
 
@@ -29,7 +30,7 @@ Chrome Manifest V3 擴充功能，**只在 Krillion（`krillion.io` / `krillion.
 ## 儲存結構（`chrome.storage.local`）
 - `enabled: boolean`（預設 true）
 - `ai: "chatgpt" | "claude" | "gemini" | "perplexity"`（預設 chatgpt）
-- `history: {t:number, lang:string, original:string, english:string}[]`，最多 200 筆；只記「有被翻譯」（偵測語言 ≠ en）的句子
+- `history: {t:number, lang:string, original:string, english:string, question?:string}[]`（`question` 為翻譯當下畫面上第一張 `.ds-card` 的文字，舊紀錄沒有），最多 200 筆；只記「有被翻譯」（偵測語言 ≠ en）的句子
 
 ## 設計上的坑（改之前先看）
 - **輸入法選字**：Enter 要檢查 `e.isComposing` 與 `keyCode === 229`，否則中文選字會被誤攔。

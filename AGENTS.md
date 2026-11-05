@@ -4,13 +4,14 @@
 
 ## 這是什麼
 Chrome Manifest V3 擴充功能，**只在 Krillion（`krillion.io` / `krillion.org`）運作**。
-使用者在輸入框打任何語言，按 Enter 時：偵測語言 → 非英文就翻成英文取代輸入框內容 → 重送 Enter 觸發網站原本的送出。
+使用者在輸入框打任何語言，按 **Shift+Enter** 時：偵測語言 → 非英文就翻成英文取代輸入框內容（不送出）；確認後按 **Enter** 由網站原本的流程送出。
 另有「用 AI 檢討」：把被翻譯過的句子記在本機，產生請 AI 解釋與檢討的提示，複製到剪貼簿並跳轉到使用者常用的 AI 聊天室。
 
 ## 硬性限制（不要違反）
 - **不使用任何 LLM API。** 檢討一律靠「提示 + 剪貼簿 + 開聊天室分頁」，不要加 API key、不要從擴充功能內呼叫模型。
 - **只作用在 Krillion。** `manifest.json` 的 `content_scripts.matches` 不要改成 `<all_urls>`。要支援其他網站請先問使用者。
-- 不替使用者自動作答、不讀取題目、不改動遊戲頁面（避免被視為作弊；站方目前沒有明文禁止外掛，但也沒有服務條款）。
+- 不替使用者自動作答、不改動遊戲頁面 DOM（避免被視為作弊；站方目前沒有明文禁止外掛，但也沒有服務條款）。
+  例外（使用者 2026-11-05 明確同意）：只有使用者按 Alt+T 時，才讀取選取文字或滑鼠所在元素的文字，翻成繁中顯示在浮動框；不自動讀題、不作答、不改頁面。
 - 紀錄只存本機 `chrome.storage.local`，不上傳。
 - git：**只做本地 commit，不 push、不設遠端。** commit 訊息結尾加 `Co-Authored-By: Claude <noreply@anthropic.com>`（依當次系統指定的署名行）。使用者說 commit 才 commit。
 
@@ -18,7 +19,7 @@ Chrome Manifest V3 擴充功能，**只在 Krillion（`krillion.io` / `krillion.
 | 檔案 | 職責 |
 |---|---|
 | `manifest.json` | MV3；權限 `storage`、`clipboardWrite`；host `translate.googleapis.com`；popup 為 `popup.html` |
-| `content.js` | 注入 Krillion 頁面。capture 階段攔 Enter → 送訊息給 background 翻譯 → 寫回輸入框 → 重送 Enter |
+| `content.js` | 注入 Krillion 頁面。capture 階段攔 Shift+Enter → 送訊息給 background 翻譯 → 寫回輸入框（不送出，Enter 維持網站原行為）；Alt+T 翻譯題目（選取文字或滑鼠所在元素）→ 浮動框 |
 | `background.js` | service worker。`translate()`（Google gtx，`sl=auto&tl=en`）、`logPair()` 記錄、徽章 ON/OFF |
 | `popup.html` / `popup.js` | 工具列面板：開關、選 AI、檢討（複製 + 跳轉）、複製、下載 `.md`、清除；`buildPrompt()` 產生檢討提示 |
 | `README.md` | 給使用者的說明 |
@@ -32,7 +33,7 @@ Chrome Manifest V3 擴充功能，**只在 Krillion（`krillion.io` / `krillion.
 
 ## 設計上的坑（改之前先看）
 - **輸入法選字**：Enter 要檢查 `e.isComposing` 與 `keyCode === 229`，否則中文選字會被誤攔。
-- **重送 Enter**：用模組內 `bypass` 旗標讓自己重送的 keydown 放行；`busy` 防止翻譯中重複觸發。重送的是合成事件（`isTrusted=false`），靠網站 JS 監聽 keydown 才會送出。若網站只認按鈕或 Ctrl+Enter，要改成點按鈕或改按鍵。
+- **按鍵分工**：Shift+Enter 只翻譯並替換輸入框（`busy` 防止重複觸發）；Enter 完全不攔截，由網站自己送出，所以不再需要合成事件。
 - **寫回輸入框**：`textarea/input` 用原生 value setter 再發 `input` 事件（React 等受控元件才會更新）；`contenteditable` 用 `execCommand("selectAll")` + `insertText`。
 - **已是英文就不動**：gtx 回傳 `data[2]`（偵測語言），等於 `en` 時回傳原文，避免把英文答案改掉。短詞／人名可能被誤判成別的語言——若使用者回報，可加「純 ASCII 不翻」規則。
 - **翻譯失敗**：不送出、保留原文、錯誤印在 Console。不要在失敗時送出未翻譯的內容。

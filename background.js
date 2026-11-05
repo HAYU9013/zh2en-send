@@ -6,8 +6,10 @@ async function translate(text) {
   const res = await fetch(url);
   if (!res.ok) throw new Error("HTTP " + res.status);
   const data = await res.json();
-  const lang = data[2];
-  if (lang === "en") return { text, lang }; // 已經是英文就原樣送出
+  let lang = data[2];
+  // 短詞（如「紅酒」）偶爾被誤判成 en；只有輸入全是 ASCII 時才相信 en 並原樣送出
+  if (lang === "en" && !/[^\x00-\x7F]/.test(text)) return { text, lang };
+  if (lang === "en") lang = "auto";
   return { text: data[0].map((seg) => seg[0]).join(""), lang };
 }
 
@@ -18,7 +20,24 @@ async function logPair(original, english, lang) {
   await chrome.storage.local.set({ history: history.slice(-HISTORY_MAX) });
 }
 
+// 題目翻譯：英文 → 繁體中文，只回傳譯文，不記錄
+async function translateTo(text, tl) {
+  const url =
+    "https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=" + encodeURIComponent(tl) +
+    "&dt=t&q=" + encodeURIComponent(text);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  const data = await res.json();
+  return data[0].map((seg) => seg[0]).join("");
+}
+
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg?.type === "translateTo") {
+    translateTo(msg.text, msg.tl || "zh-TW")
+      .then((text) => sendResponse({ ok: true, text }))
+      .catch((e) => sendResponse({ ok: false, error: String(e) }));
+    return true;
+  }
   if (msg?.type !== "translate") return;
   translate(msg.text)
     .then(async (r) => {
